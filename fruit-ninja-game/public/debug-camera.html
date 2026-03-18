@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Debug - Aliyun ESA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        video {
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Camera Debug Tool - Aliyun ESA</h1>
+    
+    <div class="debug-section">
+        <h2>Environment Check</h2>
+        <div id="env-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>Production vs Local Comparison</h2>
+        <button onclick="testFullGameFlow()">Test Full Game Initialization</button>
+        <div id="game-flow-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>MediaPipe Test</h2>
+        <button onclick="testMediaPipe()">Test MediaPipe Hands</button>
+        <div id="mediapipe-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>Camera Test</h2>
+        <button onclick="testCamera()">Test Camera Access</button>
+        <button onclick="listDevices()">List Media Devices</button>
+        <div id="camera-status"></div>
+        <video id="test-video" autoplay playsinline style="display: none;"></video>
+    </div>
+
+    <div class="debug-section">
+        <h2>Debug Information</h2>
+        <pre id="debug-info"></pre>
+    </div>
+
+    <div class="debug-section">
+        <h2>Quick Fixes</h2>
+        <div class="status warning">
+            <strong>Common Solutions for Aliyun ESA:</strong>
+            <ul>
+                <li><strong>Chrome:</strong> Go to site settings → Camera → Allow</li>
+                <li><strong>Edge:</strong> Click camera icon in address bar → Allow</li>
+                <li><strong>Firefox:</strong> Click shield icon → Allow camera</li>
+                <li><strong>Safari:</strong> Safari → Settings → Websites → Camera → Allow</li>
+            </ul>
+        </div>
+        <button onclick="window.location.href='/'">← Back to Game</button>
+    </div>
+
+    <script>
+        // Check environment on load
+        window.addEventListener('load', checkEnvironment);
+
+        function checkEnvironment() {
+            const envStatus = document.getElementById('env-status');
+            const debugInfo = document.getElementById('debug-info');
+            
+            const info = {
+                url: window.location.href,
+                protocol: window.location.protocol,
+                hostname: window.location.hostname,
+                isSecureContext: window.isSecureContext,
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                mediaDevicesSupported: !!navigator.mediaDevices,
+                getUserMediaSupported: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+                timestamp: new Date().toISOString()
+            };
+
+            debugInfo.textContent = JSON.stringify(info, null, 2);
+
+            let status = '';
+            if (info.isSecureContext) {
+                status += '<div class="status success">✅ Secure Context (HTTPS)</div>';
+            } else {
+                status += '<div class="status error">❌ Not Secure Context</div>';
+            }
+
+            if (info.getUserMediaSupported) {
+                status += '<div class="status success">✅ getUserMedia API Supported</div>';
+            } else {
+                status += '<div class="status error">❌ getUserMedia API Not Supported</div>';
+            }
+
+            envStatus.innerHTML = status;
+        }
+
+        async function testCamera() {
+            const statusDiv = document.getElementById('camera-status');
+            const video = document.getElementById('test-video');
+            
+            statusDiv.innerHTML = '<div class="status warning">🔄 Testing camera access...</div>';
+
+            try {
+                console.log('Requesting camera access...');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280, min: 640 },
+                        height: { ideal: 720, min: 480 },
+                        facingMode: 'user'
+                    }
+                });
+
+                console.log('Camera access granted:', stream);
+                
+                video.srcObject = stream;
+                video.style.display = 'block';
+                
+                statusDiv.innerHTML = `
+                    <div class="status success">✅ Camera Access Successful!</div>
+                    <p>Stream ID: ${stream.id}</p>
+                    <p>Video tracks: ${stream.getVideoTracks().length}</p>
+                    <button onclick="stopCamera()">Stop Camera</button>
+                `;
+
+            } catch (error) {
+                console.error('Camera access failed:', error);
+                
+                let errorMsg = 'Unknown error';
+                let troubleshooting = '';
+
+                switch (error.name) {
+                    case 'NotAllowedError':
+                        errorMsg = 'Camera access denied by user or browser policy';
+                        troubleshooting = 'Please allow camera access and try again.';
+                        break;
+                    case 'NotFoundError':
+                        errorMsg = 'No camera device found';
+                        troubleshooting = 'Please ensure a camera is connected.';
+                        break;
+                    case 'NotReadableError':
+                        errorMsg = 'Camera is already in use';
+                        troubleshooting = 'Close other applications using the camera.';
+                        break;
+                    case 'OverconstrainedError':
+                        errorMsg = 'Camera constraints cannot be satisfied';
+                        troubleshooting = 'Try with different camera settings.';
+                        break;
+                    case 'SecurityError':
+                        errorMsg = 'Security error';
+                        troubleshooting = 'Check HTTPS and browser permissions.';
+                        break;
+                    default:
+                        errorMsg = error.message || error.name;
+                        troubleshooting = 'Check browser console for more details.';
+                }
+
+                statusDiv.innerHTML = `
+                    <div class="status error">❌ Camera Access Failed</div>
+                    <p><strong>Error:</strong> ${errorMsg}</p>
+                    <p><strong>Troubleshooting:</strong> ${troubleshooting}</p>
+                    <pre>${JSON.stringify({
+                        name: error.name,
+                        message: error.message,
+                        constraint: error.constraint
+                    }, null, 2)}</pre>
+                `;
+            }
+        }
+
+        async function listDevices() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                console.log('Media devices:', devices);
+                
+                const statusDiv = document.getElementById('camera-status');
+                statusDiv.innerHTML += `
+                    <div class="status success">📹 Found ${videoDevices.length} camera device(s)</div>
+                    <pre>${JSON.stringify(videoDevices.map(d => ({
+                        deviceId: d.deviceId,
+                        label: d.label || 'Unknown Camera',
+                        kind: d.kind
+                    })), null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Failed to enumerate devices:', error);
+            }
+        }
+
+        function stopCamera() {
+            const video = document.getElementById('test-video');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                video.style.display = 'none';
+            }
+            document.getElementById('camera-status').innerHTML = '<div class="status warning">Camera stopped</div>';
+        }
+
+        async function testMediaPipe() {
+            const statusDiv = document.getElementById('mediapipe-status');
+            statusDiv.innerHTML = '<div class="status warning">🔄 Testing MediaPipe...</div>';
+
+            try {
+                // Test if MediaPipe can be loaded
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+                
+                script.onload = () => {
+                    statusDiv.innerHTML = '<div class="status success">✅ MediaPipe Hands loaded successfully</div>';
+                };
+                
+                script.onerror = () => {
+                    statusDiv.innerHTML = '<div class="status error">❌ Failed to load MediaPipe Hands from CDN</div>';
+                };
+                
+                document.head.appendChild(script);
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ MediaPipe test failed: ${error.message}</div>`;
+            }
+        }
+
+        async function testFullGameFlow() {
+            const statusDiv = document.getElementById('game-flow-status');
+            statusDiv.innerHTML = '<div class="status warning">🔄 Testing full game initialization flow...</div>';
+
+            let results = [];
+
+            try {
+                // Step 1: Test camera access (same as main game)
+                results.push('📹 Testing camera access...');
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280, min: 640 },
+                        height: { ideal: 720, min: 480 },
+                        facingMode: 'user',
+                        frameRate: { ideal: 30, min: 15 }
+                    }
+                });
+                results.push('✅ Camera access: SUCCESS');
+
+                // Step 2: Test video element setup
+                results.push('📺 Testing video element setup...');
+                const testVideo = document.createElement('video');
+                testVideo.srcObject = stream;
+                testVideo.setAttribute('playsinline', 'true');
+                
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Video metadata timeout')), 5000);
+                    testVideo.onloadedmetadata = () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    };
+                });
+                results.push('✅ Video metadata: SUCCESS');
+
+                await testVideo.play();
+                results.push('✅ Video play: SUCCESS');
+
+                // Step 3: Test MediaPipe dependencies
+                results.push('🧠 Testing MediaPipe dependencies...');
+                
+                // Test if MediaPipe scripts can be loaded
+                const testMediaPipeLoad = () => {
+                    return new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+                        script.onload = () => resolve('MediaPipe Hands loaded');
+                        script.onerror = () => reject(new Error('MediaPipe Hands failed to load'));
+                        document.head.appendChild(script);
+                        
+                        setTimeout(() => reject(new Error('MediaPipe load timeout')), 10000);
+                    });
+                };
+
+                try {
+                    await testMediaPipeLoad();
+                    results.push('✅ MediaPipe Hands: SUCCESS');
+                } catch (mpError) {
+                    results.push(`❌ MediaPipe Hands: ${mpError.message}`);
+                }
+
+                // Step 4: Test Camera utility
+                results.push('📷 Testing Camera utility...');
+                try {
+                    // This will fail if Camera class is not available
+                    if (typeof Camera !== 'undefined') {
+                        results.push('✅ Camera utility: Available');
+                    } else {
+                        results.push('❌ Camera utility: Not available (MediaPipe not loaded)');
+                    }
+                } catch (cameraError) {
+                    results.push(`❌ Camera utility: ${cameraError.message}`);
+                }
+
+                // Clean up
+                stream.getTracks().forEach(track => track.stop());
+
+                // Display results
+                statusDiv.innerHTML = `
+                    <div class="status success">🔍 Full Game Flow Test Complete</div>
+                    <pre style="text-align: left; margin-top: 10px;">${results.join('\n')}</pre>
+                `;
+
+            } catch (error) {
+                results.push(`❌ FAILED: ${error.message}`);
+                statusDiv.innerHTML = `
+                    <div class="status error">❌ Full Game Flow Test Failed</div>
+                    <pre style="text-align: left; margin-top: 10px;">${results.join('\n')}</pre>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
