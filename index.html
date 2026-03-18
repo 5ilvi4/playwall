@@ -297,7 +297,7 @@
   // ─────────────────────────────────────────────
   function startGame() {
     state = 'playing';
-    score = 0; speed = 5; frame = 0; bgScroll = 0;
+    score = 0; speed = 3; frame = 0; bgScroll = 0;
     Object.assign(PL, {
       lane: 1, x: LANE_X[1], targetX: LANE_X[1],
       jumping: false, jumpVel: 0, jumpY: 0,
@@ -588,7 +588,7 @@
 
     if (state === 'playing') {
       frame++;
-      speed  = Math.min(15, 5 + frame / 500);
+      speed  = Math.min(10, 3 + frame / 800);
       score  = Math.floor(frame * speed / 8);
 
       // player movement
