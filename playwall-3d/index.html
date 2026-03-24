@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playwall 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: Arial, sans-serif; }
+    #app { width: 100vw; height: 100vh; position: relative; }
+    canvas#three-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+    #cam-wrap {
+      position: absolute; bottom: 20px; right: 20px;
+      width: 200px; height: 150px;
+      border-radius: 12px; overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.2);
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    #webcam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+    #pose-canvas { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+    #hud { position: absolute; top: 24px; left: 28px; color: white; pointer-events: none; }
+    #score-label { font-size: 11px; font-weight: bold; color: #ffd93d; letter-spacing: 3px; }
+    #score-value { font-size: 52px; font-weight: 900; line-height: 1.1; }
+    #gesture-box {
+      position: absolute; bottom: 20px; left: 20px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 10px 18px;
+      color: #ffd93d; font-size: 22px; font-weight: bold;
+      letter-spacing: 2px; min-width: 130px;
+    }
+    #status-text { font-size: 11px; color: #777; margin-bottom: 2px; }
+    #overlay {
+      position: absolute; inset: 0;
+      background: rgba(5,5,20,0.9);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; color: white;
+    }
+    #overlay h1 {
+      font-size: 72px; font-weight: 900; letter-spacing: 8px;
+      background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 10px;
+    }
+    #overlay p { color: #aaa; font-size: 16px; margin: 5px 0; }
+    #play-btn {
+      margin-top: 36px; padding: 16px 60px;
+      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+      color: white; border: none; border-radius: 50px;
+      font-size: 24px; font-weight: 900; letter-spacing: 3px;
+      cursor: pointer; box-shadow: 0 8px 28px rgba(255,107,107,0.5);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    #play-btn:hover { transform: scale(1.06); box-shadow: 0 12px 36px rgba(255,107,107,0.7); }
+    #gameover {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.82);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; color: white;
+    }
+    #gameover h2 { font-size: 80px; font-weight: 900; color: #ff6b6b; text-shadow: 0 0 30px #ff6b6b; }
+    #final-score { font-size: 40px; margin: 12px 0; }
+    #gameover p { color: #888; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="three-canvas"></canvas>
+    <div id="cam-wrap">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="pose-canvas" width="200" height="150"></canvas>
+    </div>
+    <div id="hud">
+      <div id="score-label">SCORE</div>
+      <div id="score-value">0</div>
+    </div>
+    <div id="gesture-box">
+      <div id="status-text">Starting…</div>
+      <div id="gesture-text">—</div>
+    </div>
+    <div id="overlay">
+      <h1>PLAYWALL</h1>
+      <p>Lean <strong>LEFT / RIGHT</strong> to switch lanes</p>
+      <p><strong>JUMP</strong> to leap over red barriers</p>
+      <p><strong>SQUAT</strong> to duck under beams</p>
+      <p style="margin-top:16px;color:#ff6b6b;font-size:13px;">Allow camera access when prompted</p>
+      <button id="play-btn" onclick="window.startGame && window.startGame()">LET'S GO!</button>
+    </div>
+    <div id="gameover">
+      <h2>GAME OVER</h2>
+      <div id="final-score"></div>
+      <p>Jump or press Enter to play again</p>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
